@@ -4,13 +4,15 @@ import { Bodoni_Moda_SC, Bodoni_Moda } from 'next/font/google'
 
 const headingFont = Bodoni_Moda_SC({
   subsets: ['latin'],
-  weight: ['400', '700'],
+  weight: ['400', '500','600','700','800','900'],
+  style: ['normal', 'italic'],
   variable: '--font-heading',
 })
 
 const bodyFont = Bodoni_Moda({
   subsets: ['latin'],
-  weight: ['400', '700'],
+  weight: ['400', '500','600','700','800','900'],
+  style: ['normal', 'italic'],
   variable: '--font-body',
 })
 
