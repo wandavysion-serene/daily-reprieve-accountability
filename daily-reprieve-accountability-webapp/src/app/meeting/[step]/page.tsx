@@ -33,6 +33,9 @@ export default function StepPage() {
     if (nextStep) router.push(`/meeting/${nextStep}`)
   }
 
+  // Only show newcomer radio buttons on the 'newcomer-check' step
+  const showNewcomerChoice = stepParam === 'newcomer-check'
+
   return (
     <main
       style={{
@@ -43,24 +46,93 @@ export default function StepPage() {
         alignItems: 'center',
       }}
     >
-      <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 900 }}>
+      <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
         {currentStep.title}
       </h1>
-      <p style={{ fontSize: '1.25rem', margin: '2rem 0', textAlign: 'center' }}>
+      <p
+        style={{
+          fontSize: '1.25rem',
+          margin: '2rem 0',
+          textAlign: 'center',
+          whiteSpace: 'pre-line',
+        }}
+      >
         {currentStep.content}
       </p>
 
-      {stepParam === 'welcome' && (
-        <div style={{ marginBottom: '2rem' }}>
-          <label style={{ fontSize: '1.1rem', display: 'block', marginBottom: '0.5rem' }}>
+      {/* Render meta instructions if they exist */}
+      {currentStep.metaInstructions && (
+        <ul
+          style={{
+            color: 'red',
+            fontStyle: 'italic',
+            marginTop: '1rem',
+            textAlign: 'left',
+            paddingLeft: '2rem',
+          }}
+        >
+          {currentStep.metaInstructions.map((instr, idx) => (
+            <li
+              key={idx}
+              style={{
+                whiteSpace: 'pre-line',
+                marginBottom: '0.5rem',
+              }}
+            >
+              {instr}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {currentStep.link && (
+        <a
+          href={currentStep.link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block',
+            marginBottom: '1rem',
+            color: '#0070f3',
+            textDecoration: 'underline',
+            fontSize: '1.1rem',
+            whiteSpace: 'pre-line',
+            cursor: 'pointer',
+            position: 'relative',
+            zIndex: 10,
+          }}
+        >
+          {currentStep.link.text}
+        </a>
+      )}
+
+      {showNewcomerChoice && (
+        <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+          <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
             Is there a newcomer present?
-          </label>
-          <input
-            type="checkbox"
-            checked={newcomerPresent}
-            onChange={(e) => setNewcomerPresent(e.target.checked)}
-            style={{ width: '20px', height: '20px' }}
-          />
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <label>
+              <input
+                type="radio"
+                name="newcomer"
+                value="no"
+                checked={!newcomerPresent} // default: regular script
+                onChange={() => setNewcomerPresent(false)}
+              />{' '}
+              No
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="newcomer"
+                value="yes"
+                checked={newcomerPresent}
+                onChange={() => setNewcomerPresent(true)}
+              />{' '}
+              Yes
+            </label>
+          </div>
         </div>
       )}
 
@@ -69,7 +141,8 @@ export default function StepPage() {
         style={{
           padding: '0.75rem 1.5rem',
           fontSize: '1.25rem',
-          fontWeight: 'bold',
+          fontWeight: '500',
+          fontStyle: 'italic',
           borderRadius: '0.5rem',
           border: 'none',
           backgroundColor: '#111',
@@ -77,7 +150,7 @@ export default function StepPage() {
           cursor: 'pointer',
         }}
       >
-        {stepParam === 'welcome'
+        {showNewcomerChoice
           ? newcomerPresent
             ? 'Go to Newcomer Script'
             : 'Continue with Regular Script'

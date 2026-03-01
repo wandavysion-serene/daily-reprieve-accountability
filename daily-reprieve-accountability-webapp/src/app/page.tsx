@@ -29,21 +29,7 @@ export default function Home() {
       <p style={{ fontSize: '1.25rem', marginBottom: '2rem' }}>
         Host your meeting smoothly — follow the script, track steps, and start timers with ease.
       </p>
-      <button
-        onClick={startMeeting}
-        style={{
-          padding: '1rem 2rem',
-          fontFamily:'var(--font-body',
-          fontWeight: '500',
-          fontStyle: 'italic',
-          fontSize: '1.25rem',
-          borderRadius: '0.5rem',
-          border: 'none',
-          backgroundColor: '#111',
-          color: '#fff',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s ease',
-        }}
+      <button onClick={startMeeting}
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#333')}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#111')}
       >

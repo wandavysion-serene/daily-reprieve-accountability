@@ -19,3 +19,22 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 1rem;
   line-height: 1.2;
 }
+
+/* Buttons */
+button {
+  font-family: var(--font-body), serif;
+  font-weight: 500;
+  font-style: italic;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.25rem;
+  background-color: #111;
+  color: #fff;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #333;
+}
