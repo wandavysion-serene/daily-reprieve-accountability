@@ -6,7 +6,7 @@ export default function Home() {
   const router = useRouter()
 
   const startMeeting = () => {
-    router.push('/meeting/opening')
+    router.push('/meeting/welcome')
   }
 
   return (

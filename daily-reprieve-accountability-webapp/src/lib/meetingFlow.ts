@@ -11,47 +11,28 @@ export type Step = {
 
 export const meetingFlow: Step[] = [
   {
-    id: 'opening',
-    title: 'Opening',
-    content: 'Welcome to the Daily Reprieve Accountability meeting.',
-    next: 'serenity-prayer',
-  },
-  {
-    id: 'serenity-prayer',
-    title: 'Serenity Prayer',
-    content: 'God, grant me the serenity to accept the things I cannot change...',
-    next: 'newcomer-check',
-  },
-  {
-    id: 'newcomer-check',
-    title: 'Newcomer Check',
-    content: 'Is there a newcomer present?',
+    id: 'welcome',
+    title: 'Welcome',
+    content:
+      'Welcome to the SAA Daily Reprieve Accountability meeting. ' +
+      'If there are any newcomers, please come off mute and introduce yourselves.',
     conditionalNext: [
       { condition: 'newcomerPresent', goTo: 'newcomer-script' },
     ],
-    next: 'meditation',
+    next: 'regular-script', // default if no newcomers
   },
   {
     id: 'newcomer-script',
     title: 'Newcomer Script',
-    content: 'Welcome newcomers! Please read these instructions...',
+    content:
+      'Welcome newcomers! Please read these instructions carefully to understand the meeting flow...',
     next: 'meditation',
   },
   {
-    id: 'meditation',
-    title: 'Meditation',
-    content: 'Click start to begin a 5-minute meditation timer.',
-    next: 'readings',
-  },
-  {
-    id: 'readings',
-    title: 'Readings',
-    content: 'Please read the designated passages from the Big Book...',
-    next: 'closing',
-  },
-  {
-    id: 'closing',
-    title: 'Closing',
-    content: 'Thank you for attending. See you tomorrow!',
+    id: 'regular-script',
+    title: 'Regular Script',
+    content:
+      'We will continue with the regular meeting script. Please follow along with the readings.',
+    next: 'meditation',
   },
 ]
