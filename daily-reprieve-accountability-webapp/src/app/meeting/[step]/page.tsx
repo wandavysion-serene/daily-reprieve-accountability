@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { meetingFlow, Step } from '@/lib/meetingFlow'
+import Timer from '@/app/timer/page'
 
 export default function StepPage() {
   const router = useRouter()
@@ -104,6 +105,10 @@ export default function StepPage() {
         >
           {currentStep.link.text}
         </a>
+      )}
+
+      {currentStep.timerSeconds && (
+        <Timer startSeconds={currentStep.timerSeconds} />
       )}
 
       {showNewcomerChoice && (

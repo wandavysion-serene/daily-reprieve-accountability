@@ -4,6 +4,7 @@ export type Step = {
   content: string
   metaInstructions?: string []
   link?: { url: string; text: string }
+  timerSeconds?: number
   next?: string
   conditionalNext?: {
     condition: string
@@ -54,18 +55,6 @@ export const meetingFlow: Step[] = [
     next: 'newcomer-check',
   },
   {
-    id: 'business-portion',
-    title: 'Business Portion',
-    content:
-      'Before we begin the readings, a quick note about service:\n we have a host and two co-host roles available each meeting,\n including one who monitors the Waiting Room.' +
-      '\n\n' +
-      '\t● Host highlights any upcoming first step presentations\n' +
-      '\t● Host only reads upcoming service roles that are highlighted\n and asks for volunteers to post in chat for upcoming positions not filled.' +
-      '\n\n' +
-      'Screen share the DRA Service Sign-Up Sheet:\n https://docs.google.com/spreadsheets/d/xxxxxxxxxxxx/edit#gid=0',
-    next: 'newcomer-check',
-  },
-  {
     id: 'newcomer-check',
     title: 'Newcomer Check',
     content:
@@ -83,14 +72,39 @@ export const meetingFlow: Step[] = [
       'We’ll start our reading portion and our AA Big Book morning prayers. ' +
       'If you’d like to read, please raise your hand on Zoom, by clicking “raise hand” in the participant or reaction tab on the toolbar, or by pressing *9 if you’re calling in. ' +
       'The host will call on members in the order in which they raised their hands.',
-    next: 'meditation', // or whatever the next step is
+    next: 'meditation',
   },
   {
     id: 'newcomer-intro',
     title: 'Newcomer Introduction',
     content:
-      'We’d like to welcome you to our meeting. We know the courage it takes walking into this space for the first time. ' +
-      'All of us in this space were in your shoes at one time. After we’ve finished our opening readings, we’ll open up for introductions and share.',
+      'We’d like to welcome you to our meeting.' +
+      '\n\n' +
+      'We know the courage it takes walking into this space for the first time.\nAll of us in this space were in your shoes at one time.' +
+      '\n\n' +
+      'After we’ve finished our opening readings, we’ll open up for introductions and share.\nThis is a time when you may share your experience on the topic or the reading.' +
+      '\n\n' +
+      'We avoid crosstalk or interruptions when another person is sharing.\nWe also don’t offer advice or criticism.' +
+      '\n\n' +
+      'We will then finish the meeting with silent meditation and independent step work.\nStick around after the meeting if you have any questions.' + 
+      '\n\n' +
+      'SAA recommends that you come to at least 6 meetings and talk to as many\n members of the fellowship as possible before you decide whether SAA\n has anything to offer you. You’ll find that each meeting is a little bit different,\n but each meeting shares and works the same program called the Twelve Steps.' +
+      '\n\n' +
+      'The twelve-step program is what worked for us. SAA is much more than meetings.\nSAA is a fellowship of sex addicts in action, like the action being taken in this meeting\n through commitment to daily step work. We work the steps and help others do the same.\nWe encourage you to make finding a sponsor a priority.\n A sponsor can show you how to work the steps.' +
+      '\n\n' +
+      'It is our sincerest hope that you find what you’re looking for.' + 
+      '\n\n' +
+      'May we have a volunteer give a brief three-minute lead on step one?',
+    next: 'step-one-lead',
+  },
+  {
+    id: 'step-one-lead',
+    title: 'Step One Lead Share',
+    content:
+      'Thank you for your share' +
+      '\n\n' +
+      'We will now go into individual shares',
+    timerSeconds: 180,
     next: 'reading-portion',
   },
 ]
