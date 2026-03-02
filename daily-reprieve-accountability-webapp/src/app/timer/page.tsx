@@ -68,10 +68,6 @@ export default function Timer({ startSeconds = 0 }: TimerProps) {
         fontFamily: 'var(--font-body)',
       }}
     >
-      <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
-        Timer
-      </h1>
-
       <div
         style={{
           fontSize: '3rem',
