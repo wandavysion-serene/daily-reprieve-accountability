@@ -1,117 +1,91 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-interface TimerProps {
-  startSeconds?: number
+type TimerProps = {
+  initialMinutes?: number
 }
 
-export default function Timer({ startSeconds = 0 }: TimerProps) {
-  const [seconds, setSeconds] = useState(startSeconds)
+export default function Timer({ initialMinutes = 5 }: TimerProps) {
+  const [secondsLeft, setSecondsLeft] = useState(initialMinutes * 60)
   const [running, setRunning] = useState(false)
+
   const intervalRef = useRef<number | null>(null)
 
-  // Start timer
-  const startTimer = () => {
-    if (!running) {
-        setRunning(true)
-        intervalRef.current = window.setInterval(() => {
-            setSeconds((prev) => {
-                if (prev <= 0) {
-                    clearInterval(intervalRef.current!)
-                    setRunning(false)
-                    return 0
-                }
-            return prev - 1
-            })
-        }, 1000)
-    }
-  }
-  // Pause timer
-  const pauseTimer = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-      setRunning(false)
-    }
+  const start = () => {
+    if (running) return
+
+    setRunning(true)
+
+    intervalRef.current = window.setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current!)
+          intervalRef.current = null
+          setRunning(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
   }
 
-  // Reset timer
-  const resetTimer = () => {
-    pauseTimer() // stop the interval
-    setSeconds(startSeconds) // reset to original starting value
+  const pause = () => {
+    if (!intervalRef.current) return
+
+    clearInterval(intervalRef.current)
+    intervalRef.current = null
+    setRunning(false)
   }
 
-  // Clean up on unmount
+  const reset = () => {
+    pause()
+    setSecondsLeft(initialMinutes * 60)
+  }
+
   useEffect(() => {
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [])
 
-  // Convert seconds to mm:ss
-  const formatTime = (sec: number) => {
-    const m = Math.floor(sec / 60).toString().padStart(2, '0')
-    const s = (sec % 60).toString().padStart(2, '0')
-    return `${m}:${s}`
+  const format = (sec: number) => {
+    const m = Math.floor(sec / 60)
+    const s = sec % 60
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
   return (
-    <main
+    <div
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '2rem',
+        position: 'fixed',
+        top: '20%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 9999,
+        cursor: 'move',
+        userSelect: 'none',
         fontFamily: 'var(--font-body)',
       }}
     >
+      {/* DISPLAY (always visible once rendered) */}
       <div
         style={{
           fontSize: '3rem',
-          margin: '2rem 0',
-          fontWeight: 600,
+          fontWeight: 700,
+          textAlign: 'center',
+          marginBottom: '1rem',
         }}
       >
-        {formatTime(seconds)}
+        {format(secondsLeft)}
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <button
-          onClick={startTimer}
-          style={{
-            padding: '0.75rem 1.5rem',
-            fontSize: '1rem',
-            cursor: 'pointer',
-          }}
-        >
-          Start
-        </button>
-
-        <button
-          onClick={pauseTimer}
-          style={{
-            padding: '0.75rem 1.5rem',
-            fontSize: '1rem',
-            cursor: 'pointer',
-          }}
-        >
-          Pause
-        </button>
-
-        <button
-          onClick={resetTimer}
-          style={{
-            padding: '0.75rem 1.5rem',
-            fontSize: '1rem',
-            cursor: 'pointer',
-          }}
-        >
-          Reset
-        </button>
+      {/* CONTROLS (static, NOT draggable) */}
+      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+        <button onClick={start}>Start</button>
+        <button onClick={pause}>Pause</button>
+        <button onClick={reset}>Reset</button>
       </div>
-    </main>
+    </div>
   )
 }

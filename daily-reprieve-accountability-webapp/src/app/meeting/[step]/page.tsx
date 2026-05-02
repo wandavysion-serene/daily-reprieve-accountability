@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { meetingFlow, Step } from '@/lib/meetingFlow'
-import Timer from '@/app/timer/page'
 import Image from 'next/image'
 
 export default function StepPage() {
@@ -20,29 +19,116 @@ export default function StepPage() {
 
   if (!currentStep) return <p>Step not found.</p>
 
+  // ----------------------------
+  // STATE
+  // ----------------------------
+  const [newcomerPresent, setNewcomerPresent] = useState(false)
+
+  // TIMER (host-controlled minutes)
+  const [minutes, setMinutes] = useState(
+    Math.floor((currentStep.timerSeconds ?? 0) / 60)
+  )
+
+  const [secondsLeft, setSecondsLeft] = useState(minutes * 60)
+  const [running, setRunning] = useState(false)
+
+  const intervalRef = useRef<number | null>(null)
+
+  // DRAG STATE (ONLY FOR TIMER)
+  const [pos, setPos] = useState({ x: 120, y: 120 })
+  const dragRef = useRef(false)
+  const offsetRef = useRef({ x: 0, y: 0 })
+
+  // ----------------------------
+  // TIMER LOGIC
+  // ----------------------------
+  const startTimer = () => {
+    if (running) return
+
+    setSecondsLeft(minutes * 60)
+    setRunning(true)
+
+    intervalRef.current = window.setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current)
+          intervalRef.current = null
+          setRunning(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const pauseTimer = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+    setRunning(false)
+  }
+
+  const resetTimer = () => {
+    pauseTimer()
+    setSecondsLeft(minutes * 60)
+  }
+
+  // ----------------------------
+  // DRAGGING (ONLY TIMER)
+  // ----------------------------
+  const onMouseDown = (e: React.MouseEvent) => {
+    dragRef.current = true
+    offsetRef.current = {
+      x: e.clientX - pos.x,
+      y: e.clientY - pos.y,
+    }
+  }
+
+  const onMouseMove = (e: MouseEvent) => {
+    if (!dragRef.current) return
+
+    setPos({
+      x: e.clientX - offsetRef.current.x,
+      y: e.clientY - offsetRef.current.y,
+    })
+  }
+
+  const onMouseUp = () => {
+    dragRef.current = false
+  }
+
+  useEffect(() => {
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
+
+  // ----------------------------
+  // NAVIGATION
+  // ----------------------------
   const isFinalStep = !currentStep.next
 
-  const [newcomerPresent, setNewcomerPresent] = useState(false)
-  const [useWeVersion, setUseWeVersion] = useState(true)
-
-  const getNextStep = () => {
-    if (currentStep.conditionalNext) {
-      for (const cond of currentStep.conditionalNext) {
-        if (cond.condition === 'newcomerPresent' && newcomerPresent) {
-          return cond.goTo
-        }
-      }
-    }
-    return currentStep.next
-  }
-
   const handleNext = () => {
-    const nextStep = getNextStep()
-    if (nextStep) router.push(`/meeting/${nextStep}`)
+    if (currentStep.next) {
+      router.push(`/meeting/${currentStep.next}`)
+    }
   }
 
-  const showNewcomerChoice = currentStep.id === 'newcomer-check'
-  const showSerenityToggle = currentStep.id === 'serenity-prayer'
+  const showNewcomerChoice = stepParam === 'newcomer-check'
+
+  // ----------------------------
+  // FORMAT
+  // ----------------------------
+  const format = (sec: number) => {
+    const m = Math.floor(sec / 60)
+    const s = sec % 60
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  }
 
   return (
     <main
@@ -52,298 +138,175 @@ export default function StepPage() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        maxWidth: '800px',
-        margin: '0 auto',
       }}
     >
-      <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
-        {currentStep.title}
-      </h1>
+      {/* TOP INSTRUCTION */}
+      <p
+        style={{
+          fontSize: '1.2rem',
+          textAlign: 'center',
+          whiteSpace: 'pre-line',
+          marginBottom: '0.1rem',
+          fontFamily: 'var(--font-body)',
+        }}
+      >
+        Please turn your cameras off and mute yourselves so that we don’t disturb one another
+      </p>
 
-      {/* Serenity Toggle */}
-      {showSerenityToggle && (
+      {/* CONTENT */}
+      {currentStep.contentBlocks?.map((block, idx) => {
+        switch (block.type) {
+          case 'p1':
+            return (
+              <p
+                key={idx}
+                style={{
+                  fontSize: '1.2rem',
+                  textAlign: 'center',
+                  whiteSpace: 'pre-line',
+                  margin: '0.5rem 0',
+                }}
+              >
+                {block.text}
+              </p>
+            )
+
+          case 'image':
+            return (
+              <Image
+                key={idx}
+                src={block.src}
+                alt={block.alt || ''}
+                width={1400}
+                height={900}
+                style={{
+                  width: '95vw',
+                  maxWidth: '1100px',
+                  height: 'auto',
+                  borderRadius: '12px',
+                  margin: '0.1rem 0',
+                }}
+              />
+            )
+
+          case 'ul':
+            return (
+              <ul key={idx} style={{ textAlign: 'left' }}>
+                {block.items.map((i, j) => (
+                  <li key={j}>{i}</li>
+                ))}
+              </ul>
+            )
+
+          case 'ol':
+            return (
+              <ol key={idx} style={{ textAlign: 'left' }}>
+                {block.items.map((i, j) => (
+                  <li key={j}>{i}</li>
+                ))}
+              </ol>
+            )
+
+          default:
+            return null
+        }
+      })}
+
+      {/* TIMER CONTROLS */}
+      {currentStep.timerSeconds !== undefined && (
         <div
           style={{
-            marginTop: '1.5rem',
+            marginTop: '2rem',
             display: 'flex',
-            justifyContent: 'center',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.75rem',
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              borderRadius: '999px',
-              backgroundColor: '#eee',
-              padding: '4px',
-            }}
-          >
-            <button
-              onClick={() => setUseWeVersion(false)}
-              style={{
-                padding: '0.4rem 1rem',
-                borderRadius: '999px',
-                border: 'none',
-                cursor: 'pointer',
-                backgroundColor: !useWeVersion ? '#111' : 'transparent',
-                color: !useWeVersion ? '#fff' : '#333',
-                fontWeight: 500,
-                transition: 'all 0.2s ease',
-              }}
-            >
-              I
-            </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button onClick={startTimer}>Start</button>
+            <button onClick={pauseTimer}>Pause</button>
+            <button onClick={resetTimer}>Reset</button>
+          </div>
 
-            <button
-              onClick={() => setUseWeVersion(true)}
+          {/* MINUTES INPUT */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem' }}>
+              Timer (minutes)
+            </label>
+
+            <input
+              type="number"
+              value={minutes}
+              onChange={(e) => setMinutes(Number(e.target.value))}
               style={{
-                padding: '0.4rem 1rem',
-                borderRadius: '999px',
-                border: 'none',
-                cursor: 'pointer',
-                backgroundColor: useWeVersion ? '#111' : 'transparent',
-                color: useWeVersion ? '#fff' : '#333',
-                fontWeight: 500,
-                transition: 'all 0.2s ease',
+                width: '120px',
+                textAlign: 'center',
+                padding: '0.4rem',
               }}
-            >
-              We
-            </button>
+            />
           </div>
         </div>
       )}
 
-      {/* Render Content Blocks */}
-      {currentStep.contentBlocks &&
-        currentStep.contentBlocks.map((block, idx) => {
-          switch (block.type) {
-            case 'p1':
-              return (
-                <p
-                  key={idx}
-                  style={{
-                    fontSize: '1.25rem',
-                    margin: '2rem 0',
-                    textAlign: 'center',
-                    whiteSpace: 'pre-line',
-                  }}
-                >
-                  {block.text}
-                </p>
-              )
-
-            case 'p2':
-              return (
-                <p
-                  key={idx}
-                  style={{
-                    fontSize: '0.9rem',
-                    margin: '1rem 0',
-                    textAlign: 'center',
-                    whiteSpace: 'pre-line',
-                    color: '#555',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {block.text}
-                </p>
-              )
-
-            case 'ul':
-              return (
-                <ul
-                  key={idx}
-                  style={{
-                    marginTop: '1rem',
-                    textAlign: 'left',
-                    paddingLeft: '2rem',
-                    fontSize: '1.1rem',
-                    whiteSpace: 'pre-line',
-                  }}
-                >
-                  {block.items.map((item, i) => (
-                    <li key={i} style={{ marginBottom: '0.5rem' }}>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              )
-
-            case 'ol':
-              return (
-                <ol
-                  key={idx}
-                  style={{
-                    marginTop: '1rem',
-                    textAlign: 'left',
-                    paddingLeft: '2rem',
-                    fontSize: '1.1rem',
-                    whiteSpace: 'pre-line',
-                  }}
-                >
-                  {block.items.map((item, i) => (
-                    <li key={i} style={{ marginBottom: '0.5rem' }}>
-                      {item}
-                    </li>
-                  ))}
-                </ol>
-              )
-
-            case 'image':
-              return (
-                <Image
-                  key={idx}
-                  src={block.src}
-                  alt={block.alt || ''}
-                  width={block.width || 600}
-                  height={400}
-                  style={{
-                    margin: '2rem 0',
-                    borderRadius: '8px',
-                  }}
-                />
-              )
-
-            case 'serenity':
-              return (
-                <p
-                  key={idx}
-                  style={{
-                    fontSize: '1.5rem',
-                    margin: '2rem 0',
-                    textAlign: 'center',
-                    whiteSpace: 'pre-line',
-                    fontWeight: 500,
-                  }}
-                >
-                  {useWeVersion ? block.weVersion : block.iVersion}
-                </p>
-              )
-
-            default:
-              return null
-          }
-        })}
-
-      {/* Meta Instructions */}
-      {currentStep.metaInstructions && (
-        <ul
+      {/* FLOATING TIMER */}
+      {running && (
+        <div
+          onMouseDown={onMouseDown}
           style={{
-            color: 'red',
-            fontStyle: 'italic',
-            marginTop: '1rem',
-            textAlign: 'left',
-            paddingLeft: '2rem',
+            position: 'fixed',
+            top: pos.y,
+            left: pos.x,
+            zIndex: 9999,
+            cursor: 'grab',
+            padding: '1rem 1.5rem',
+            background: 'rgba(0,0,0,0.85)',
+            color: '#fff',
+            borderRadius: '10px',
+            fontSize: '2.2rem',
+            userSelect: 'none',
           }}
         >
-          {currentStep.metaInstructions.map((instr, idx) => (
-            <li
-              key={idx}
-              style={{
-                whiteSpace: 'pre-line',
-                marginBottom: '0.5rem',
-              }}
-            >
-              {instr}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* External Link */}
-      {currentStep.link && (
-        <a
-          href={currentStep.link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'block',
-            marginTop: '1.5rem',
-            color: '#0070f3',
-            textDecoration: 'underline',
-            fontSize: '1.1rem',
-            cursor: 'pointer',
-          }}
-        >
-          {currentStep.link.text}
-        </a>
-      )}
-
-      {/* Timer */}
-      {currentStep.timerSeconds && (
-        <Timer startSeconds={currentStep.timerSeconds} />
-      )}
-
-      {/* Newcomer Choice */}
-      {showNewcomerChoice && (
-        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-            Is there a newcomer present?
-          </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <label>
-              <input
-                type="radio"
-                name="newcomer"
-                value="no"
-                checked={!newcomerPresent}
-                onChange={() => setNewcomerPresent(false)}
-              />{' '}
-              No
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="newcomer"
-                value="yes"
-                checked={newcomerPresent}
-                onChange={() => setNewcomerPresent(true)}
-              />{' '}
-              Yes
-            </label>
-          </div>
+          {format(secondsLeft)}
         </div>
       )}
 
-      {/* Navigation */}
-      <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-        {isFinalStep ? (
-          <>
-            <button
-              onClick={() => router.push('/meeting/welcome')}
-              style={{ padding: '0.75rem 1.5rem', cursor: 'pointer' }}
-            >
-              Back to Beginning
-            </button>
-
-            <button
-              onClick={() => router.push('/')}
-              style={{ padding: '0.75rem 1.5rem', cursor: 'pointer' }}
-            >
-              Close
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={handleNext}
-            style={{
-              padding: '0.75rem 1.5rem',
-              fontSize: '1.25rem',
-              fontWeight: 500,
-              borderRadius: '0.5rem',
-              border: 'none',
-              backgroundColor: '#111',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            {showNewcomerChoice
-              ? newcomerPresent
-                ? 'Go to Newcomer Script'
-                : 'Continue with Regular Script'
-              : 'Next'}
+      {/* NAV */}
+      {isFinalStep ? (
+        <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+          <button onClick={() => router.push('/meeting/welcome')}>
+            Back to Beginning
           </button>
-        )}
-      </div>
+          <button onClick={() => router.push('/')}>Close</button>
+        </div>
+      ) : (
+        <button onClick={handleNext} style={{ marginTop: '2rem' }}>
+          Next
+        </button>
+      )}
+
+      {/* NEWCOMER */}
+      {showNewcomerChoice && (
+        <div style={{ marginTop: '2rem' }}>
+          <label>
+            <input
+              type="radio"
+              checked={!newcomerPresent}
+              onChange={() => setNewcomerPresent(false)}
+            />
+            No
+          </label>
+
+          <label style={{ marginLeft: '1rem' }}>
+            <input
+              type="radio"
+              checked={newcomerPresent}
+              onChange={() => setNewcomerPresent(true)}
+            />
+            Yes
+          </label>
+        </div>
+      )}
     </main>
   )
 }

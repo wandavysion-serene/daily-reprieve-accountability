@@ -3,7 +3,13 @@ type ContentBlock =
   | { type: 'p2'; text: string }
   | { type: 'ul'; items: string[] }
   | { type: 'ol'; items: string[] }
-  | { type: 'image'; src: string; alt?: string; width?: number }
+  | {
+      type: 'image'
+      src: string
+      alt?: string
+      width?: number
+      options?: string[] // 👈 NEW
+    }
   | {
       type: 'serenity'
       weVersion: string
@@ -204,17 +210,25 @@ export const meetingFlow: Step[] = [
     id: 'silent-meditation-image',
     title: 'Silent Meditation in Progress',
     contentBlocks: [
-      { 
+      {
         type: 'image',
-        src: '/images/meditation-in-progress.jpg',
-        alt: 'Peaceful meditation background',
+        src: '/images/01_Silent-Meditation.png',
+        alt: 'Silent meditation',
         width: 700,
+        options: [
+          '/images/01_Silent-Meditation.png',
+          '/images/02_Silent-Meditation.png',
+          '/images/03_Silent-Meditation.png',
+          '/images/04_Silent-Meditation.png',
+          '/images/05_Silent-Meditation.png',
+        ],
       },
-      { 
+      {
         type: 'p1',
-        text : 
-        'Please turn your cameras off and mute yourselves so that we don’t disturb one another'
-      }],
+        text:
+          'Please turn your cameras off and mute yourselves so that we don’t disturb one another',
+      },
+    ],
     timerSeconds: 300,
     next: 'step-work',
   },
@@ -257,17 +271,23 @@ export const meetingFlow: Step[] = [
     id: 'step-work-image',
     title: 'Shhh... Stepwork in Progress',
     contentBlocks: [
-      { 
+      {
         type: 'image',
-        src: '/images/step-work-in-progress.jpg',
-        alt: 'Peaceful meditation background',
+        src: '/images/01_Stepwork in progress.png',
+        alt: 'Stepwork in progress',
         width: 700,
+        options: [
+          '/images/01_Stepwork in progress.png',
+          '/images/02_Stepwork in progress.png',
+          '/images/03_Stepwork in progress.png',
+        ],
       },
-      { 
+      {
         type: 'p1',
-        text : 
-        'Please turn your cameras off and mute yourselves so that we don’t disturb one another'
-      }],
+        text:
+          'Please turn your cameras off and mute yourselves so that we don’t disturb one another',
+      },
+    ],
     timerSeconds: 600,
     next: 'stepwork-conclusion',
   },
