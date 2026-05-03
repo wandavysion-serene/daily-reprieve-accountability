@@ -20,21 +20,34 @@ export default function StepPage() {
   if (!currentStep) return <p>Step not found.</p>
 
   // ----------------------------
+  // FLAGS
+  // ----------------------------
+  const isImageFocusStep =
+    currentStep.id === 'silent-meditation-image' ||
+    currentStep.id === 'step-work-image'
+
+  const isFirstStep = currentStep.id === 'welcome'
+
+  // ----------------------------
   // STATE
   // ----------------------------
   const [newcomerPresent, setNewcomerPresent] = useState(false)
 
-  // TIMER (host-controlled minutes)
+  // IMAGE SELECTION
+  const [imageSelections, setImageSelections] = useState<Record<number, string>>(
+    {}
+  )
+
+  // TIMER
   const [minutes, setMinutes] = useState(
     Math.floor((currentStep.timerSeconds ?? 0) / 60)
   )
-
   const [secondsLeft, setSecondsLeft] = useState(minutes * 60)
   const [running, setRunning] = useState(false)
 
   const intervalRef = useRef<number | null>(null)
 
-  // DRAG STATE (ONLY FOR TIMER)
+  // DRAG TIMER
   const [pos, setPos] = useState({ x: 120, y: 120 })
   const dragRef = useRef(false)
   const offsetRef = useRef({ x: 0, y: 0 })
@@ -75,7 +88,7 @@ export default function StepPage() {
   }
 
   // ----------------------------
-  // DRAGGING (ONLY TIMER)
+  // DRAGGING
   // ----------------------------
   const onMouseDown = (e: React.MouseEvent) => {
     dragRef.current = true
@@ -109,20 +122,36 @@ export default function StepPage() {
   }, [])
 
   // ----------------------------
-  // NAVIGATION
+  // NAVIGATION (FIXED)
   // ----------------------------
   const isFinalStep = !currentStep.next
 
-  const handleNext = () => {
-    if (currentStep.next) {
-      router.push(`/meeting/${currentStep.next}`)
+  const getNextStep = () => {
+    if (currentStep.conditionalNext) {
+      for (const cond of currentStep.conditionalNext) {
+        if (cond.condition === 'newcomerPresent' && newcomerPresent) {
+          return cond.goTo
+        }
+      }
     }
+    return currentStep.next
+  }
+
+  const handleNext = () => {
+    const nextStep = getNextStep()
+    if (nextStep) {
+      router.push(`/meeting/${nextStep}`)
+    }
+  }
+
+  const handleBack = () => {
+    router.back()
   }
 
   const showNewcomerChoice = stepParam === 'newcomer-check'
 
   // ----------------------------
-  // FORMAT
+  // FORMAT TIMER
   // ----------------------------
   const format = (sec: number) => {
     const m = Math.floor(sec / 60)
@@ -140,18 +169,23 @@ export default function StepPage() {
         alignItems: 'center',
       }}
     >
-      {/* TOP INSTRUCTION */}
-      <p
-        style={{
-          fontSize: '1.2rem',
-          textAlign: 'center',
-          whiteSpace: 'pre-line',
-          marginBottom: '0.1rem',
-          fontFamily: 'var(--font-body)',
-        }}
-      >
-        Please turn your cameras off and mute yourselves so that we don’t disturb one another
-      </p>
+      {/* TITLE */}
+      {!isImageFocusStep && (
+        <h1 style={{ marginBottom: '1rem' }}>{currentStep.title}</h1>
+      )}
+
+      {/* SPECIAL INSTRUCTION */}
+      {isImageFocusStep && (
+        <p
+          style={{
+            fontSize: '1.2rem',
+            textAlign: 'center',
+            marginBottom: '0.1rem',
+          }}
+        >
+          Please turn your cameras off and mute yourselves so that we don’t disturb one another
+        </p>
+      )}
 
       {/* CONTENT */}
       {currentStep.contentBlocks?.map((block, idx) => {
@@ -171,23 +205,66 @@ export default function StepPage() {
               </p>
             )
 
-          case 'image':
+          case 'image': {
+            const selectedSrc = imageSelections[idx] || block.src
+
             return (
-              <Image
-                key={idx}
-                src={block.src}
-                alt={block.alt || ''}
-                width={1400}
-                height={900}
-                style={{
-                  width: '95vw',
-                  maxWidth: '1100px',
-                  height: 'auto',
-                  borderRadius: '12px',
-                  margin: '0.1rem 0',
-                }}
-              />
+              <div key={idx} style={{ textAlign: 'center' }}>
+                <Image
+                  src={selectedSrc}
+                  alt={block.alt || ''}
+                  width={1400}
+                  height={900}
+                  style={{
+                    width: '95vw',
+                    maxWidth: '1100px',
+                    height: 'auto',
+                    borderRadius: '12px',
+                  }}
+                />
+
+                {block.options && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.5rem',
+                      justifyContent: 'center',
+                      marginTop: '2rem',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {block.options.map((opt, i) => {
+                      const isSelected = selectedSrc === opt
+
+                      return (
+                        <Image
+                          key={i}
+                          src={opt}
+                          alt=""
+                          width={80}
+                          height={60}
+                          onClick={() =>
+                            setImageSelections((prev) => ({
+                              ...prev,
+                              [idx]: opt,
+                            }))
+                          }
+                          style={{
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            border: isSelected
+                              ? '3px solid #0070f3'
+                              : '2px solid transparent',
+                            opacity: isSelected ? 1 : 0.7,
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )
+          }
 
           case 'ul':
             return (
@@ -214,36 +291,21 @@ export default function StepPage() {
 
       {/* TIMER CONTROLS */}
       {currentStep.timerSeconds !== undefined && (
-        <div
-          style={{
-            marginTop: '2rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.75rem',
-          }}
-        >
-          <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <button onClick={startTimer}>Start</button>
             <button onClick={pauseTimer}>Pause</button>
             <button onClick={resetTimer}>Reset</button>
           </div>
 
-          {/* MINUTES INPUT */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem' }}>
-              Timer (minutes)
-            </label>
-
+          <div style={{ marginTop: '0.5rem' }}>
+            <label>Timer (minutes)</label>
+            <br />
             <input
               type="number"
               value={minutes}
               onChange={(e) => setMinutes(Number(e.target.value))}
-              style={{
-                width: '120px',
-                textAlign: 'center',
-                padding: '0.4rem',
-              }}
+              style={{ width: '100px', textAlign: 'center' }}
             />
           </div>
         </div>
@@ -259,31 +321,27 @@ export default function StepPage() {
             left: pos.x,
             zIndex: 9999,
             cursor: 'grab',
-            padding: '1rem 1.5rem',
-            background: 'rgba(0,0,0,0.85)',
-            color: '#fff',
+            padding: '1rem',
+            background: 'black',
+            color: 'white',
             borderRadius: '10px',
-            fontSize: '2.2rem',
-            userSelect: 'none',
+            fontSize: '2rem',
           }}
         >
           {format(secondsLeft)}
         </div>
       )}
 
-      {/* NAV */}
-      {isFinalStep ? (
-        <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-          <button onClick={() => router.push('/meeting/welcome')}>
-            Back to Beginning
-          </button>
-          <button onClick={() => router.push('/')}>Close</button>
-        </div>
-      ) : (
-        <button onClick={handleNext} style={{ marginTop: '2rem' }}>
-          Next
+      {/* NAVIGATION */}
+      <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+        {!isFirstStep && <button onClick={handleBack}>Back</button>}
+
+        <button onClick={() => router.push('/meeting/welcome')}>
+          Back to Beginning
         </button>
-      )}
+
+        {!isFinalStep && <button onClick={handleNext}>Next</button>}
+      </div>
 
       {/* NEWCOMER */}
       {showNewcomerChoice && (

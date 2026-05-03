@@ -222,12 +222,7 @@ export const meetingFlow: Step[] = [
           '/images/04_Silent-Meditation.png',
           '/images/05_Silent-Meditation.png',
         ],
-      },
-      {
-        type: 'p1',
-        text:
-          'Please turn your cameras off and mute yourselves so that we don’t disturb one another',
-      },
+      }
     ],
     timerSeconds: 300,
     next: 'step-work',
@@ -281,12 +276,7 @@ export const meetingFlow: Step[] = [
           '/images/02_Stepwork in progress.png',
           '/images/03_Stepwork in progress.png',
         ],
-      },
-      {
-        type: 'p1',
-        text:
-          'Please turn your cameras off and mute yourselves so that we don’t disturb one another',
-      },
+      }
     ],
     timerSeconds: 600,
     next: 'stepwork-conclusion',
