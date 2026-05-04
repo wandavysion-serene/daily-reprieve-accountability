@@ -210,7 +210,20 @@ export default function StepPage() {
   const isFinalStep = !currentStep.next
 
   const handleNext = () => {
-    if (currentStep.next) router.push(`/meeting/${currentStep.next}`)
+    let nextStep = currentStep.next
+
+    if (currentStep.conditionalNext?.length) {
+      for (const cond of currentStep.conditionalNext) {
+        if (cond.condition === 'newcomerPresent' && newcomerPresent) {
+          nextStep = cond.goTo
+          break
+        }
+      }
+    }
+
+    if (nextStep) {
+      router.push(`/meeting/${nextStep}`)
+    }
   }
 
   const handleBack = () => router.back()
@@ -268,6 +281,42 @@ export default function StepPage() {
                     {block.text}
                   </p>
                 )
+              case 'p2': 
+                return ( 
+                  <p 
+                    key={idx} 
+                    style={{ 
+                      fontSize: '1.1rem', 
+                      textAlign: 'justify', 
+                      whiteSpace: 'pre-line', 
+                      margin: '1.5rem 0', 
+                      color: 'red', 
+                      fontStyle: 'italic', 
+                      fontWeight: 700, 
+                      lineHeight: '1.6', 
+                    }} 
+                    > 
+                      {block.text} 
+                    </p> 
+                  )
+                case 'p3': 
+                return ( 
+                  <p 
+                    key={idx} 
+                    style={{ 
+                      fontSize: '1.1rem', 
+                      textAlign: 'justify', 
+                      whiteSpace: 'pre-line', 
+                      margin: '1.5rem 0', 
+                      color: 'red', 
+                      fontStyle: 'italic', 
+                      fontWeight: 400, 
+                      lineHeight: '1.6', 
+                    }} 
+                    > 
+                      {block.text} 
+                    </p> 
+                  )
 
               case 'image': {
                 const selectedSrc =
@@ -339,6 +388,34 @@ export default function StepPage() {
                 return null
             }
           })}
+          {currentStep.links?.length ? (
+            <div
+              style={{
+                marginTop: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                alignItems: 'center',
+                textAlign: 'center',
+              }}
+            >
+              {currentStep.links.map((link, idx) => (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: '#0070f3',
+                    textDecoration: 'underline',
+                    fontSize: '1rem',
+                  }}
+                >
+                  {link.text}
+                </a>
+              ))}
+            </div>
+          ) : null}
 
         </div>
       </div>
