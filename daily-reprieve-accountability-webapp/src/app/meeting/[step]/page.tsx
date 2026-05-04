@@ -5,6 +5,92 @@ import { useRouter, useParams } from 'next/navigation'
 import { meetingFlow, Step } from '@/lib/meetingFlow'
 import Image from 'next/image'
 
+/* ----------------------------
+   SERENITY TOGGLE (STABLE)
+----------------------------- */
+function SerenityToggle({
+  weVersion,
+  iVersion,
+}: {
+  weVersion: string
+  iVersion: string
+}) {
+  const [mode, setMode] = useState<'we' | 'i'>('we')
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          background: '#e5e5e5',
+          borderRadius: '999px',
+          padding: '4px',
+          width: '180px',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: 4,
+            left: mode === 'we' ? 4 : '50%',
+            width: 'calc(50% - 4px)',
+            height: 'calc(100% - 8px)',
+            background: '#111',
+            borderRadius: '999px',
+            transition: '0.25s ease',
+          }}
+        />
+
+        <div
+          onClick={() => setMode('we')}
+          style={{
+            flex: 1,
+            textAlign: 'center',
+            padding: '6px 0',
+            zIndex: 1,
+            cursor: 'pointer',
+            color: mode === 'we' ? '#fff' : '#333',
+            fontWeight: 600,
+          }}
+        >
+          We
+        </div>
+
+        <div
+          onClick={() => setMode('i')}
+          style={{
+            flex: 1,
+            textAlign: 'center',
+            padding: '6px 0',
+            zIndex: 1,
+            cursor: 'pointer',
+            color: mode === 'i' ? '#fff' : '#333',
+            fontWeight: 600,
+          }}
+        >
+          I
+        </div>
+      </div>
+
+      <p
+        style={{
+          marginTop: '1rem',
+          fontSize: '1.2rem',
+          whiteSpace: 'pre-line',
+          textAlign: 'center',
+          lineHeight: '1.6',
+        }}
+      >
+        {mode === 'we' ? weVersion : iVersion}
+      </p>
+    </div>
+  )
+}
+
+/* ----------------------------
+   PAGE
+----------------------------- */
 export default function StepPage() {
   const router = useRouter()
   const params = useParams()
@@ -19,47 +105,44 @@ export default function StepPage() {
 
   if (!currentStep) return <p>Step not found.</p>
 
-  // ----------------------------
-  // FLAGS
-  // ----------------------------
   const isImageFocusStep =
     currentStep.id === 'silent-meditation-image' ||
     currentStep.id === 'step-work-image'
 
   const isFirstStep = currentStep.id === 'welcome'
 
-  // ----------------------------
-  // STATE
-  // ----------------------------
+  /* ----------------------------
+     STATE
+  ----------------------------- */
   const [newcomerPresent, setNewcomerPresent] = useState(false)
 
-  // IMAGE SELECTION
-  const [imageSelections, setImageSelections] = useState<Record<number, string>>(
-    {}
-  )
+  const [imageSelections, setImageSelections] = useState<Record<string, string>>({})
 
-  // TIMER
   const [minutes, setMinutes] = useState(
     Math.floor((currentStep.timerSeconds ?? 0) / 60)
   )
-  const [secondsLeft, setSecondsLeft] = useState(minutes * 60)
+
+  const initialSecondsRef = useRef(
+    Math.floor((currentStep.timerSeconds ?? 0) / 60) * 60
+  )
+
+  const [secondsLeft, setSecondsLeft] = useState(initialSecondsRef.current)
   const [running, setRunning] = useState(false)
+  const [showFloatingTimer, setShowFloatingTimer] = useState(false)
 
   const intervalRef = useRef<number | null>(null)
 
-  // DRAG TIMER
-  const [pos, setPos] = useState({ x: 120, y: 120 })
-  const dragRef = useRef(false)
-  const offsetRef = useRef({ x: 0, y: 0 })
+  const [isLocked, setIsLocked] = useState(false)
 
-  // ----------------------------
-  // TIMER LOGIC
-  // ----------------------------
+  /* ----------------------------
+     TIMER
+  ----------------------------- */
   const startTimer = () => {
     if (running) return
 
-    setSecondsLeft(minutes * 60)
     setRunning(true)
+    setShowFloatingTimer(true)
+    setIsLocked(true)
 
     intervalRef.current = window.setInterval(() => {
       setSecondsLeft((prev) => {
@@ -75,21 +158,22 @@ export default function StepPage() {
   }
 
   const pauseTimer = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
+    if (intervalRef.current) clearInterval(intervalRef.current)
     setRunning(false)
   }
 
   const resetTimer = () => {
     pauseTimer()
-    setSecondsLeft(minutes * 60)
+    setSecondsLeft(initialSecondsRef.current)
   }
 
-  // ----------------------------
-  // DRAGGING
-  // ----------------------------
+  /* ----------------------------
+     DRAG TIMER
+  ----------------------------- */
+  const [pos, setPos] = useState({ x: 120, y: 120 })
+  const dragRef = useRef(false)
+  const offsetRef = useRef({ x: 0, y: 0 })
+
   const onMouseDown = (e: React.MouseEvent) => {
     dragRef.current = true
     offsetRef.current = {
@@ -100,7 +184,6 @@ export default function StepPage() {
 
   const onMouseMove = (e: MouseEvent) => {
     if (!dragRef.current) return
-
     setPos({
       x: e.clientX - offsetRef.current.x,
       y: e.clientY - offsetRef.current.y,
@@ -121,44 +204,28 @@ export default function StepPage() {
     }
   }, [])
 
-  // ----------------------------
-  // NAVIGATION (FIXED)
-  // ----------------------------
+  /* ----------------------------
+     NAV
+  ----------------------------- */
   const isFinalStep = !currentStep.next
 
-  const getNextStep = () => {
-    if (currentStep.conditionalNext) {
-      for (const cond of currentStep.conditionalNext) {
-        if (cond.condition === 'newcomerPresent' && newcomerPresent) {
-          return cond.goTo
-        }
-      }
-    }
-    return currentStep.next
-  }
-
   const handleNext = () => {
-    const nextStep = getNextStep()
-    if (nextStep) {
-      router.push(`/meeting/${nextStep}`)
-    }
+    if (currentStep.next) router.push(`/meeting/${currentStep.next}`)
   }
 
-  const handleBack = () => {
-    router.back()
-  }
+  const handleBack = () => router.back()
 
   const showNewcomerChoice = stepParam === 'newcomer-check'
 
-  // ----------------------------
-  // FORMAT TIMER
-  // ----------------------------
   const format = (sec: number) => {
     const m = Math.floor(sec / 60)
     const s = sec % 60
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
+  /* ----------------------------
+     RENDER
+  ----------------------------- */
   return (
     <main
       style={{
@@ -169,177 +236,192 @@ export default function StepPage() {
         alignItems: 'center',
       }}
     >
-      {/* TITLE */}
       {!isImageFocusStep && (
         <h1 style={{ marginBottom: '1rem' }}>{currentStep.title}</h1>
       )}
 
-      {/* SPECIAL INSTRUCTION */}
       {isImageFocusStep && (
-        <p
-          style={{
-            fontSize: '1.2rem',
-            textAlign: 'center',
-            marginBottom: '0.1rem',
-          }}
-        >
+        <p style={{ fontSize: '1.2rem', textAlign: 'center' }}>
           Please turn your cameras off and mute yourselves so that we don’t disturb one another
         </p>
       )}
 
       {/* CONTENT */}
-      {currentStep.contentBlocks?.map((block, idx) => {
-        switch (block.type) {
-          case 'p1':
-            return (
-              <p
-                key={idx}
-                style={{
-                  fontSize: '1.2rem',
-                  textAlign: 'center',
-                  whiteSpace: 'pre-line',
-                  margin: '0.5rem 0',
-                }}
-              >
-                {block.text}
-              </p>
-            )
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ maxWidth: '900px', width: '100%' }}>
 
-          case 'image': {
-            const selectedSrc = imageSelections[idx] || block.src
+          {currentStep.contentBlocks?.map((block, idx) => {
+            switch (block.type) {
 
-            return (
-              <div key={idx} style={{ textAlign: 'center' }}>
-                <Image
-                  src={selectedSrc}
-                  alt={block.alt || ''}
-                  width={1400}
-                  height={900}
-                  style={{
-                    width: '95vw',
-                    maxWidth: '1100px',
-                    height: 'auto',
-                    borderRadius: '12px',
-                  }}
-                />
-
-                {block.options && (
-                  <div
+              case 'p1':
+                return (
+                  <p
+                    key={idx}
                     style={{
-                      display: 'flex',
-                      gap: '0.5rem',
-                      justifyContent: 'center',
-                      marginTop: '2rem',
-                      flexWrap: 'wrap',
+                      fontSize: '1.2rem',
+                      textAlign: 'justify',
+                      whiteSpace: 'pre-line',
+                      margin: '0.75rem 0',
+                      lineHeight: '1.6',
                     }}
                   >
-                    {block.options.map((opt, i) => {
-                      const isSelected = selectedSrc === opt
+                    {block.text}
+                  </p>
+                )
 
-                      return (
-                        <Image
-                          key={i}
-                          src={opt}
-                          alt=""
-                          width={80}
-                          height={60}
-                          onClick={() =>
-                            setImageSelections((prev) => ({
-                              ...prev,
-                              [idx]: opt,
-                            }))
-                          }
-                          style={{
-                            cursor: 'pointer',
-                            borderRadius: '6px',
-                            border: isSelected
-                              ? '3px solid #0070f3'
-                              : '2px solid transparent',
-                            opacity: isSelected ? 1 : 0.7,
-                          }}
-                        />
-                      )
-                    })}
+              case 'image': {
+                const selectedSrc =
+                  imageSelections[`${idx}`] || block.src
+
+                return (
+                  <div key={idx} style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                    <Image
+                      src={selectedSrc}
+                      alt={block.alt || ''}
+                      width={1400}
+                      height={900}
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        borderRadius: '12px',
+                      }}
+                    />
+
+                    {/* ✅ THUMBNAILS FIXED */}
+                    {block.options?.length ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          justifyContent: 'center',
+                          marginTop: '1rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {block.options.map((opt, i) => (
+                          <Image
+                            key={i}
+                            src={opt}
+                            alt=""
+                            width={80}
+                            height={60}
+                            onClick={() =>
+                              setImageSelections((prev) => ({
+                                ...prev,
+                                [`${idx}`]: opt,
+                              }))
+                            }
+                            style={{
+                              cursor: 'pointer',
+                              borderRadius: '6px',
+                              opacity: selectedSrc === opt ? 1 : 0.6,
+                              border: selectedSrc === opt ? '2px solid #0070f3' : '2px solid transparent',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                )}
-              </div>
-            )
-          }
+                )
+              }
 
-          case 'ul':
-            return (
-              <ul key={idx} style={{ textAlign: 'left' }}>
-                {block.items.map((i, j) => (
-                  <li key={j}>{i}</li>
-                ))}
-              </ul>
-            )
+              case 'serenity':
+                return (
+                  <div key={idx} style={{ margin: '2rem 0' }}>
+                    <SerenityToggle
+                      weVersion={block.weVersion}
+                      iVersion={block.iVersion}
+                    />
+                  </div>
+                )
 
-          case 'ol':
-            return (
-              <ol key={idx} style={{ textAlign: 'left' }}>
-                {block.items.map((i, j) => (
-                  <li key={j}>{i}</li>
-                ))}
-              </ol>
-            )
+              default:
+                return null
+            }
+          })}
 
-          default:
-            return null
-        }
-      })}
+        </div>
+      </div>
 
-      {/* TIMER CONTROLS */}
+      {/* TIMER */}
       {currentStep.timerSeconds !== undefined && (
-        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <div
+          style={{
+            marginTop: '2rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem',
+            alignItems: 'center',
+          }}
+        >
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button onClick={startTimer}>Start</button>
             <button onClick={pauseTimer}>Pause</button>
             <button onClick={resetTimer}>Reset</button>
           </div>
 
-          <div style={{ marginTop: '0.5rem' }}>
-            <label>Timer (minutes)</label>
-            <br />
+          <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <span style={{ fontFamily: 'var(--font-body)' }}>
+              Set timer :
+            </span>
             <input
               type="number"
               value={minutes}
               onChange={(e) => setMinutes(Number(e.target.value))}
-              style={{ width: '100px', textAlign: 'center' }}
+              disabled={isLocked}
+              onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+              style={{
+                width: '80px',
+                textAlign: 'center',
+                fontFamily: 'var(--font-body)',
+                fontSize: '1rem',
+                padding: '0.4rem',
+                borderRadius: '6px',
+                border: '1px solid #ccc',
+                opacity: isLocked ? 0.5 : 1,
+                cursor: isLocked ? 'not-allowed' : 'text',
+              }}
             />
+            <span style={{ fontFamily: 'var(--font-body)' }}>
+              minutes
+            </span>
           </div>
+
         </div>
       )}
-
       {/* FLOATING TIMER */}
-      {running && (
+      {showFloatingTimer && (
         <div
           onMouseDown={onMouseDown}
           style={{
             position: 'fixed',
             top: pos.y,
             left: pos.x,
-            zIndex: 9999,
-            cursor: 'grab',
             padding: '1rem',
-            background: 'black',
-            color: 'white',
+            zIndex: 9999,
+            background: 'white',
+            color: 'black',
             borderRadius: '10px',
             fontSize: '2rem',
+            border: '1px solid #ddd',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            cursor: 'grab',
+
+            // 🔒 stability fix
+            width: '7ch',
+            textAlign: 'center',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: '700',
+            lineHeight: '1',
           }}
         >
           {format(secondsLeft)}
         </div>
       )}
 
-      {/* NAVIGATION */}
+      {/* NAV */}
       <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
         {!isFirstStep && <button onClick={handleBack}>Back</button>}
-
-        <button onClick={() => router.push('/meeting/welcome')}>
-          Back to Beginning
-        </button>
-
         {!isFinalStep && <button onClick={handleNext}>Next</button>}
       </div>
 
